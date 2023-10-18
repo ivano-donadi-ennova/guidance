@@ -130,6 +130,25 @@ def aggregate_messages(messages):
                 aggregated_messages.append({"author": message["role"], "content": message["content"]})
         return context, examples, aggregated_messages
 
+class RestTokenizer():
+    def __init__(self, embedding_model="textembedding-gecko@001", rest_call = False):
+        self.embedding_model = embedding_model
+        self.rest_call = rest_call
+        if not rest_call:
+            self.tokenizer = palm.TextEmbeddingModel.from_pretrained(embedding_model)
+
+    def encode(self, string, allowed_special):
+        if self.rest_call:
+            return None
+        else:
+            return self.tokenizer.get_embeddings([string],auto_truncate=False)[0]
+
+    def decode(self, tokens):
+        if self.rest_call:
+            return None
+        else:
+            return None
+        
 class PaLM(LLM):
     llm_name: str = "palm"
 
@@ -205,7 +224,7 @@ class PaLM(LLM):
                     api_base = api_base[:rcolon_index]
         
         # TODO: TOKENIZER?
-
+        self._tokenizer = RestTokenizer()
         self.chat_mode = chat_mode
         
         self.allowed_special_tokens = allowed_special_tokens
@@ -510,7 +529,7 @@ class PaLM(LLM):
                 response = await session.post(url, json=data, headers=headers, timeout=60)
                 status = response.status
             else:
-                response = requests.post(url, headers=headers, json=data, timeout=60)
+                response = requests.post(url, headers=headers, json=data, timeout=300)
                 status = response.status_code
                 text = response.text
             if status != 200:
